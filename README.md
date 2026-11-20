@@ -47,6 +47,7 @@ you must set up on your router.
 | | `emulator` | `bridge` |
 |---|---|---|
 | Vendor cloud / app | no new data | keep working |
+| Weather forecast on the station | **not available** (fixed placeholder data) | real forecast from the cloud |
 | Internet needed | no | yes |
 | Router change | one static route (`/32`) | DNS server for your network |
 | Other devices affected | practically none | yes, they use Home Assistant for DNS |
@@ -141,6 +142,21 @@ Device *Fanju Weather Station*:
 `Indoor/Outdoor Temperature`, `Indoor/Outdoor Humidity`, `Indoor/Outdoor Temperature Max`, `Indoor/Outdoor Temperature Min`.
 
 The values are retained in MQTT. Sensors become `unavailable` after 15 minutes without a packet.
+
+## Limitations of the emulator mode
+
+In emulator mode the vendor cloud is replaced, so everything the cloud normally provides to the station and the app is missing:
+
+* **No weather forecast on the station.** The forecast data on the station's display and the hourly statistics come
+  from the cloud. The add-on answers the station's requests with fixed placeholder data that was copied from a real
+  answer, so the forecast shown on the station is **not real and not updated**. Ignore it, or use bridge mode
+  if you want it.
+* **No app, no cloud history and no cloud services** (account, remote access, push messages of the app).
+* The measurements are unaffected: indoor/outdoor temperature and humidity are measured and sent by the station
+  itself and arrive in Home Assistant as usual. The clock of the station is set by the add-on from your time zone.
+* Only what we learned from captures is emulated. Functions of the cloud that we have not seen cannot be answered.
+
+Use **bridge** mode if you need any of these.
 
 ## Risks and side effects
 
