@@ -56,13 +56,47 @@ If you do not need the app, use **emulator**. It is the safer option.
 
 ## Installation
 
-Home Assistant OS / Supervised:
+Requires Home Assistant OS or a Supervised installation (add-ons are not available in Container / Core installs)
+and an MQTT broker, for example the **Mosquitto broker** add-on with the MQTT integration set up.
 
-1. *Settings → Add-ons → Add-on store → ⋮ → Repositories* and add `https://github.com/Blinchik91/ha-addon-fanju-weather`.
-   Alternatively copy the `fanju_weather` folder into the `addons` share of your installation (Samba) and reload the store.
-2. Install **Fanju Weather Station (Local Server)**. An MQTT broker (e.g. the Mosquitto add-on) must be running.
-3. Set `station_ip` (give the station a fixed address in your router first) and `timezone`.
-4. Configure your router as described below, **then** start the add-on and power-cycle the station.
+### 1. Add the repository
+
+[![Open your Home Assistant instance and show the add add-on repository dialog with this repository pre-filled.](https://my.home-assistant.io/badges/supervisor_add_addon_repository.svg)](https://my.home-assistant.io/redirect/supervisor_add_addon_repository/?repository_url=https%3A%2F%2Fgithub.com%2FBlinchik91%2Fha-addon-fanju-weather)
+
+Click the button, or add it manually:
+*Settings → Add-ons → Add-on Store → ⋮ (top right) → Repositories*, paste
+`https://github.com/Blinchik91/ha-addon-fanju-weather` and click *Add*.
+
+### 2. Install the add-on
+
+Reload the Add-on Store page, scroll to **Fanju Weather Station**, open **Fanju Weather Station (Local Server)** and click *Install*.
+
+### 3. Configure
+
+Open the *Configuration* tab:
+
+* `mode`: `emulator` (no cloud) or `bridge` (keep the app working), see [Choose a mode](#choose-a-mode)
+* `station_ip`: IP address of the station (give it a fixed address in your router first)
+* `timezone`: for example `Europe/Berlin`
+
+### 4. Set up your router, then start
+
+**Do not start the add-on before you have done the [router setup](#router-setup).** Then click *Start* and
+power-cycle the station (unplug it for a few seconds). Check the *Log* tab: after a minute you should see
+`published: …` lines, and the device **Fanju Weather Station** appears under *Settings → Devices & services → MQTT*.
+
+Optional: enable *Start on boot* and *Watchdog*.
+
+### Manual installation (without GitHub)
+
+Copy the `fanju_weather` folder into the `addons` share of Home Assistant (Samba add-on, or `/addons` via SSH),
+then reload the Add-on Store. The add-on appears under *Local add-ons*.
+
+### Updating and uninstalling
+
+Updates appear in the Add-on Store when a new version is released. Before uninstalling, revert your router
+setting (static route or DNS server) so the station is not left pointing at a host that no longer answers.
+Delete the device under *Settings → Devices & services → MQTT* if you do not want the sensors any more.
 
 ## Router setup
 
