@@ -1,0 +1,167 @@
+# Fanju Weather Station – local Home Assistant add-on
+
+Read **Fanju Wi-Fi weather stations** locally and get its values into Home Assistant via MQTT,
+with or without the vendor cloud.
+
+The station only talks to a vendor cloud server (UDP, `connect.emaxlife.net`, port 10000) and offers no local
+interface. This add-on takes the place of that server, or sits in front of it, so that the measurements
+arrive in Home Assistant about once a minute.
+
+> **Unofficial project.** Not affiliated with or endorsed by Fanju, EMAX or any brand sold under them. The
+> protocol was reverse-engineered from network captures. Use at your own risk; read [Risks](#risks-and-side-effects).
+
+## Features
+
+* Indoor and outdoor temperature and humidity, daily min/max, one reading per minute
+* MQTT autodiscovery: a device with eight sensors appears automatically
+* **Emulator mode:** works without any internet access or vendor cloud
+* **Bridge mode:** forwards to the real cloud, so the vendor app keeps working
+* Other routers work as long as they can do what the setup below asks for.
+
+## Supported devices
+
+| Device | Status |
+|---|---|
+| Fanju FJW4 (Wi-Fi weather station) | **works**, tested with Home Assistant OS on a Raspberry Pi 4 behind a FRITZ!Box |
+| Other Fanju stations, or the same hardware sold under other brand names | **untested**. They may use the same cloud and protocol, but this is not known |
+
+If you try another model, please open an issue with the result (and, if it does not work, a capture of its
+traffic to `connect.emaxlife.net`).
+
+## How it works
+
+```
+Station --UDP--> connect.emaxlife.net (47.52.149.125:10000)
+
+emulator:  Station --> router --(static route)--> Home Assistant add-on answers like the cloud
+bridge:    Station --> (DNS says: cloud = Home Assistant) --> add-on --> real cloud
+                                                              \--> MQTT --> Home Assistant
+```
+
+The station resolves the cloud name only at boot or after a connection loss, then keeps sending to that
+address. So the traffic has to be steered **to Home Assistant** by your network. That is the one thing
+you must set up on your router.
+
+## Choose a mode
+
+| | `emulator` | `bridge` |
+|---|---|---|
+| Vendor cloud / app | no new data | keep working |
+| Internet needed | no | yes |
+| Router change | one static route (`/32`) | DNS server for your network |
+| Other devices affected | practically none | yes, they use Home Assistant for DNS |
+| Failure when add-on is down | no data in HA | DNS outage in the whole network |
+
+If you do not need the app, use **emulator**. It is the safer option.
+
+## Installation
+
+Home Assistant OS / Supervised:
+
+1. *Settings → Add-ons → Add-on store → ⋮ → Repositories* and add `https://github.com/Blinchik91/ha-addon-fanju-weather`.
+   Alternatively copy the `fanju_weather` folder into the `addons` share of your installation (Samba) and reload the store.
+2. Install **Fanju Weather Station (Local Server)**. An MQTT broker (e.g. the Mosquitto add-on) must be running.
+3. Set `station_ip` (give the station a fixed address in your router first) and `timezone`.
+4. Configure your router as described below, **then** start the add-on and power-cycle the station.
+
+## Router setup
+
+Any router that can do the following works; the FRITZ!Box is only an example.
+
+### Emulator mode: static route
+
+Add a static IPv4 route: destination `47.52.149.125`, netmask `255.255.255.255` (`/32`), next hop = IP of Home Assistant.
+
+* FRITZ!Box: *Home Network → Network → Network Settings → IPv4 Routes → Add*
+* OpenWrt: *Network → Routing → Static IPv4 Routes*
+* Other routers: look for "static route" / "custom route"
+
+Only traffic to that single address is affected.
+
+### Bridge mode: DNS server
+
+The router has to hand out the IP of Home Assistant as DNS server to the network (or at least to the station).
+The add-on answers `connect.emaxlife.net` with its own IP and forwards all other names to your router.
+
+* FRITZ!Box: *Home Network → Network → Network Settings → IPv4 Addresses → Local DNS server*
+* Others: DHCP option 6 / "DNS server" setting of the LAN
+
+If your router can give **only one device** a different DNS server, use that for the station and leave
+everybody else alone. This avoids the risks below.
+
+After any change, restart the add-on and power-cycle the station: it only looks up the name at boot.
+
+## Configuration
+
+| Option | Description |
+|---|---|
+| `mode` | `emulator` or `bridge` |
+| `station_ip` | IP address of the station |
+| `timezone` | IANA time zone, e.g. `Europe/Berlin`. In emulator mode the station's clock is set from it |
+| `indoor_offset` | Correction in °C for the indoor temperature (default `0`) |
+
+## Entities
+
+Device *Fanju Weather Station*:
+
+`Indoor/Outdoor Temperature`, `Indoor/Outdoor Humidity`, `Indoor/Outdoor Temperature Max`, `Indoor/Outdoor Temperature Min`.
+
+The values are retained in MQTT. Sensors become `unavailable` after 15 minutes without a packet.
+
+## Risks and side effects
+
+Please read this before you install the add-on.
+
+**Network**
+
+* **Bridge mode makes Home Assistant your DNS server.** If the add-on or Home Assistant is down, all devices that use
+  it lose name resolution until you revert the router setting. The built-in DNS server is minimal: UDP only, no
+  caching, no TCP fallback. Prefer applying the DNS setting only to the station.
+* Port 53 is used in bridge mode, so it cannot run next to another DNS server on the same host
+  (AdGuard Home, Pi-hole, ...).
+* **Emulator mode removes the station from the vendor cloud.** The app and any cloud service no longer
+  receive data. If the vendor ever changes the server address, the static route no longer matches and the
+  data stops.
+* In bridge mode your data still goes to the vendor cloud, exactly as without the add-on.
+
+**Host changes** (the add-on runs with host networking and `NET_ADMIN`)
+
+* In emulator mode it adds `47.52.149.125/32` to the loopback interface, a host route to the station via your
+  default gateway, and disables acceptance of ICMP redirects (`net.ipv4.conf.all.accept_redirects`,
+  and the active interface). Address and route are removed when the add-on stops; the sysctl value stays until
+  the next host reboot.
+* It reports its measurements by publishing to your MQTT broker with the credentials Home Assistant provides.
+
+**Security**
+
+* The station protocol is unauthenticated UDP. The add-on only accepts packets from `station_ip`, but this
+  is not secure against spoofing inside your LAN. Do not expose ports 10000 or 53 to the internet.
+* In emulator mode the add-on sets the station's clock; nothing else is sent to the station.
+
+**Other**
+
+* The add-on is developed for the FJW4. Other models may behave differently. A firmware update could change the protocol. Unknown packet types are not answered.
+* Provided "as is", without warranty. You are responsible for the changes you make to your network.
+
+## Troubleshooting
+
+* *No packet from the station for 5 minutes*: check the route or DNS setting, power-cycle the station.
+* *Packets arrive but no data after the first minute (emulator)*: the station ignores answers that do not take
+  the same path as its own packets. The add-on routes its replies back through your default gateway; this requires
+  that the station reaches the add-on **through the router**, as with the static route. A DNS redirect with
+  `emulator` is not supported.
+* *Outdoor humidity differs from the app*: the values in the packets are shown as received.
+* *No sensors in Home Assistant*: check the MQTT integration and the MQTT discovery prefix (`homeassistant`).
+
+## Protocol
+
+See [docs/PROTOCOL.md](docs/PROTOCOL.md).
+
+## Contributing
+
+Issues and pull requests are welcome, especially: reports for other station models (working or not), router setup guides and
+captures of unknown packet types.
+
+## License
+
+[MIT](LICENSE)

@@ -1,0 +1,13 @@
+configuration:
+  mode:
+    name: Modus
+    description: "emulator = die Station wird selbst beantwortet, unabhängig von der Cloud (braucht eine statische Route im Router). bridge = Weiterleitung an die echte Cloud, damit die Hersteller-App weiter funktioniert (der Router muss diesen Host als DNS-Server verteilen). Siehe Dokumentation."
+  station_ip:
+    name: IP-Adresse der Station
+    description: "IP-Adresse der Wetterstation im Netzwerk. Am besten per DHCP-Reservierung fest vergeben."
+  timezone:
+    name: Zeitzone
+    description: "IANA-Zeitzone, zum Beispiel Europe/Berlin oder America/New_York. Im Emulator-Modus wird die Uhr der Station danach gestellt."
+  indoor_offset:
+    name: Korrektur Innentemperatur
+    description: "Korrektur in Grad Celsius, die zur Innentemperatur addiert wird (-5 bis 5). Normalerweise 0."
