@@ -187,6 +187,24 @@ Please read this before you install the add-on.
 * *Outdoor humidity differs from the app*: the values in the packets are shown as received.
 * *No sensors in Home Assistant*: check the MQTT integration and the MQTT discovery prefix (`homeassistant`).
 
+## Why this approach
+
+* **The station is never modified.** Nothing is written to the device or its Wi-Fi module: no settings are changed,
+  no firmware is touched. The station keeps its factory configuration and simply talks to the address it always
+  talked to. If you remove the add-on and the router setting, everything is back to the original state.
+* **Only the network path is changed, on your router.** The add-on does not depend on special features of the
+  station's Wi-Fi module (such as a configuration port), so it does not matter which module is built in. It only
+  needs the station's own upload traffic, which every station that uses the vendor cloud sends.
+* **No account and no cloud access needed.** In emulator mode the add-on answers the station itself, so it works
+  without internet and without your vendor credentials. In bridge mode the original cloud conversation is passed
+  through unchanged.
+* **Works without polling.** The values arrive as the station sends them, about once a minute, instead of being
+  fetched from a server at long intervals.
+* **Everything is reversible.** Changes on the Home Assistant host are removed when the add-on stops, and the
+  router setting can be reverted at any time.
+
+Please also read [Risks and side effects](#risks-and-side-effects): the router setup has consequences you should know about.
+
 ## Protocol
 
 See [docs/PROTOCOL.md](docs/PROTOCOL.md).
