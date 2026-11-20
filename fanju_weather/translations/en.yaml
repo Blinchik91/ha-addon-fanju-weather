@@ -8,6 +8,9 @@ configuration:
   timezone:
     name: Time zone
     description: "IANA time zone name, for example Europe/Berlin or America/New_York. In emulator mode the station clock is set from it."
+  temperature_unit:
+    name: Temperature unit
+    description: "Unit of the published temperatures: celsius or fahrenheit. The station itself measures in Fahrenheit. Home Assistant can also convert the display per entity, so you only need this if you want the sensors themselves in Fahrenheit."
   indoor_offset:
     name: Indoor temperature offset
-    description: "Correction in degrees Celsius added to the indoor temperature (-5 to 5). Usually 0."
+    description: "Correction in degrees Celsius (also when the unit is Fahrenheit) added to the indoor temperature (-5 to 5). Usually 0."

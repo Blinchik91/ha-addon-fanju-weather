@@ -23,13 +23,16 @@ daily min/max temperatures. The station reports about once a minute. The sensors
 | | `emulator` | `bridge` |
 |---|---|---|
 | Vendor cloud and app | no new data (cloud is replaced) | keep working |
+| Forecast on the station | not real (placeholder data) | real forecast |
 | Needs internet | no | yes |
 | Router change | static route for one IP | DNS server for the whole network |
 | Affects other devices | no (one /32 route) | yes (they use Home Assistant for DNS) |
 
 ### emulator (cloud independent)
 
-The add-on answers the station exactly like the vendor cloud. Setup:
+The add-on answers the station like the vendor cloud, so the station works completely locally. Limitations:
+the **weather forecast on the station is not real** (the add-on sends fixed placeholder data), and the app, cloud history
+and other cloud services are not available. The measurements are not affected. Use `bridge` if you need these. Setup:
 
 1. Router: add a static IPv4 route, destination `47.52.149.125`, netmask `255.255.255.255`, gateway = IP of Home Assistant.
    (FRITZ!Box: Home Network → Network → Network Settings → IPv4 Routes.)
@@ -62,6 +65,7 @@ Change the router setting (route <-> DNS server), change `mode`, restart the add
 | `mode` | `emulator` or `bridge` |
 | `station_ip` | IP address of the station (use a DHCP reservation) |
 | `timezone` | IANA time zone, e.g. `Europe/Berlin`. In emulator mode the station clock is set from it |
+| `temperature_unit` | `celsius` (default) or `fahrenheit`: unit of the temperature sensors. The station measures in Fahrenheit internally. Changing it later changes the unit of the sensors; Home Assistant then reports a unit change for the long-term statistics of these sensors |
 | `indoor_offset` | Correction in °C added to the indoor temperature, normally `0` |
 
 ## What the add-on changes on the host

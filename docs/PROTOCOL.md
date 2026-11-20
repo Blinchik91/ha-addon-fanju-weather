@@ -29,7 +29,7 @@ The checksum is the sum of all bytes before it, modulo 65536. The answer uses th
 The time in the `52 30` answer sets the clock of the station. After a station restart the real cloud answers 13
 consecutive `57 00` heartbeats with push messages (`50 30`, `43 30`, `50 31`, `43 31`, `50 32`, `43 32`, `50 33`,
 `43 33`, `21 01`, `22 01`, `23 00`, `24 00`, `25 00`); the add-on reproduces them (see `PUSH_HEX`).
-The contents of the statistics and forecast blocks are copied from real answers; most bytes are not understood.
+The contents of the statistics and forecast blocks are copied from real answers; most bytes are not understood. The real cloud sends current values in them (the forecast block holds temperatures); the add-on always sends the same copied block, so the forecast shown on the station is not real in emulator mode.
 
 ## Measurement packet (`53 30`, 70 bytes)
 

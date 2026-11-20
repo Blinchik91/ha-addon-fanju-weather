@@ -41,8 +41,13 @@ def log(*a):
 
 # --------------------------------------------------------------------------- decoder
 
+def raw_to_f(raw):
+    """The station reports degrees Fahrenheit in tenths, with an offset of 900."""
+    return raw / 10 - 90
+
+
 def raw_to_c(raw):
-    return ((raw - 900) / 10 - 32) * 5 / 9
+    return (raw_to_f(raw) - 32) * 5 / 9
 
 
 def decode(u):
@@ -59,7 +64,7 @@ def decode(u):
             raw, hum = struct.unpack("<H", u[o + 3 * i:o + 3 * i + 2])[0], u[o + 3 * i + 2]
             if raw == 0xFFFF:                       # sensor not present
                 return None
-            vals[name] = (round(raw_to_c(raw), 2), hum)
+            vals[name] = (raw, hum)
         return vals
 
     yy, mo, dd, hh, mi, ss = u[18:24]
@@ -71,18 +76,24 @@ def decode(u):
             "indoor": block(25), "outdoor": block(34)}
 
 
-def to_state(r, indoor_offset=0.0):
-    """Flat structure published to MQTT."""
+def to_state(r, indoor_offset=0.0, unit="celsius"):
+    """Flat structure published to MQTT. Temperatures are in `unit` (celsius or fahrenheit);
+    indoor_offset is given in degrees Celsius."""
+    def temp(raw, off_c):
+        if unit == "fahrenheit":
+            return round(raw_to_f(raw) + off_c * 9 / 5, 1)
+        return round(raw_to_c(raw) + off_c, 1)
+
     s = {"time": r["time"].isoformat()}
     for name in ("indoor", "outdoor"):
         b = r[name]
         if not b:
             continue
         off = indoor_offset if name == "indoor" else 0.0
-        s[name + "_temp"] = round(b["now"][0] + off, 1)
+        s[name + "_temp"] = temp(b["now"][0], off)
         s[name + "_humidity"] = b["now"][1]
-        s[name + "_temp_max"] = round(b["max"][0] + off, 1)
-        s[name + "_temp_min"] = round(b["min"][0] + off, 1)
+        s[name + "_temp_max"] = temp(b["max"][0], off)
+        s[name + "_temp_min"] = temp(b["min"][0], off)
     return s
 
 
@@ -136,13 +147,16 @@ SENSORS = [  # key, name, unit, device_class
 EXPIRE_AFTER = 900
 
 
-def mqtt_messages(mac, state, prefix, discovery_prefix):
+def mqtt_messages(mac, state, prefix, discovery_prefix, unit="celsius"):
+    temp_unit = "°F" if unit == "fahrenheit" else "°C"
     dev = {"identifiers": ["fanju_" + mac], "name": "Fanju Weather Station", "manufacturer": "Fanju", "model": "Wi-Fi weather station"}
     state_topic = "%s/%s/state" % (prefix, mac)
     msgs = []
-    for key, name, unit, dc in SENSORS:
+    for key, name, sensor_unit, dc in SENSORS:
+        if dc == "temperature":
+            sensor_unit = temp_unit
         cfg = {"name": name, "unique_id": "fanju_%s_%s" % (mac, key), "state_topic": state_topic,
-               "value_template": "{{ value_json.%s }}" % key, "unit_of_measurement": unit,
+               "value_template": "{{ value_json.%s }}" % key, "unit_of_measurement": sensor_unit,
                "device_class": dc, "state_class": "measurement", "expire_after": EXPIRE_AFTER, "device": dev}
         msgs.append(("%s/sensor/fanju_%s/%s/config" % (discovery_prefix, mac, key), json.dumps(cfg, ensure_ascii=False), True))
     msgs.append((state_topic, json.dumps(state), True))
@@ -277,10 +291,10 @@ def handle(a, data):
     r = decode(data)
     if not r:
         return
-    state = to_state(r, a.indoor_offset)
+    state = to_state(r, a.indoor_offset, a.temperature_unit)
     try:
         mqtt_publish(a.mqtt_host, a.mqtt_port, a.mqtt_user, os.environ.get("MQTT_PASSWORD", ""),
-                     mqtt_messages(r["mac"], state, "fanju_weather", "homeassistant"))
+                     mqtt_messages(r["mac"], state, "fanju_weather", "homeassistant", a.temperature_unit))
         log("published:", state["time"], "indoor", state.get("indoor_temp"), "outdoor", state.get("outdoor_temp"))
     except Exception as e:
         log("MQTT error:", e)
@@ -367,6 +381,7 @@ def main():
     p.add_argument("--host-ip", default="", help="bridge: IP of this host (answer to the DNS query)")
     p.add_argument("--dns-upstream", default="", help="bridge: normal DNS server for all other names")
     p.add_argument("--indoor-offset", type=float, default=0.0, help="indoor temperature correction in degrees C")
+    p.add_argument("--temperature-unit", choices=["celsius", "fahrenheit"], default="celsius")
     p.add_argument("--timezone", default="Europe/Berlin", help="time zone of the clock time sent to the station")
     p.add_argument("--mqtt-host", required=True)
     p.add_argument("--mqtt-port", type=int, default=1883)

@@ -74,6 +74,7 @@ python3 /fanju_weather.py \
     --listen "${LISTEN}" \
     --station-ip "${STATION_IP}" \
     --indoor-offset "$(bashio::config 'indoor_offset')" \
+    --temperature-unit "$(bashio::config 'temperature_unit')" \
     --timezone "$(bashio::config 'timezone')" \
     --mqtt-host "$(bashio::services mqtt host)" \
     --mqtt-port "$(bashio::services mqtt port)" \

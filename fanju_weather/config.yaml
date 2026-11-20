@@ -18,9 +18,11 @@ options:
   mode: "emulator"
   station_ip: ""
   timezone: "UTC"
+  temperature_unit: "celsius"
   indoor_offset: 0.0
 schema:
   mode: list(emulator|bridge)
   station_ip: str
   timezone: str
+  temperature_unit: list(celsius|fahrenheit)
   indoor_offset: float(-5,5)
