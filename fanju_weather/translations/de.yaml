@@ -11,6 +11,9 @@ configuration:
   temperature_unit:
     name: Temperatureinheit
     description: "Einheit der veröffentlichten Temperaturen: celsius oder fahrenheit. Die Station misst selbst in Fahrenheit. Home Assistant kann die Anzeige auch pro Entität umrechnen, die Option brauchst du nur, wenn die Sensoren selbst in Fahrenheit sein sollen."
+  debug:
+    name: Debug-Protokoll
+    description: "Jede empfangene Messung protokollieren (etwa eine Zeile pro Minute). Standardmäßig aus; das Protokoll zeigt dann nur Start, Modus und Probleme."
   indoor_offset:
     name: Korrektur Innentemperatur
     description: "Korrektur in Grad Celsius (auch bei Fahrenheit), die zur Innentemperatur addiert wird (-5 bis 5). Normalerweise 0."

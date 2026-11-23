@@ -134,6 +134,7 @@ After any change, restart the add-on and power-cycle the station: it only looks 
 | `station_ip` | IP address of the station |
 | `timezone` | IANA time zone, e.g. `Europe/Berlin`. In emulator mode the station's clock is set from it |
 | `temperature_unit` | `celsius` (default) or `fahrenheit`, unit of the temperature sensors |
+| `debug` | Log every received measurement (about one line per minute). Off by default |
 | `indoor_offset` | Correction in °C for the indoor temperature (default `0`), also applied when the unit is Fahrenheit |
 
 ## Entities

@@ -11,6 +11,9 @@ configuration:
   temperature_unit:
     name: Temperature unit
     description: "Unit of the published temperatures: celsius or fahrenheit. The station itself measures in Fahrenheit. Home Assistant can also convert the display per entity, so you only need this if you want the sensors themselves in Fahrenheit."
+  debug:
+    name: Debug log
+    description: "Log every received measurement (about one line per minute). Off by default; the log then only shows start-up, mode changes and problems."
   indoor_offset:
     name: Indoor temperature offset
     description: "Correction in degrees Celsius (also when the unit is Fahrenheit) added to the indoor temperature (-5 to 5). Usually 0."

@@ -286,8 +286,16 @@ def dns_server(a):
 
 # --------------------------------------------------------------------------- servers
 
+_mqtt_ok = None     # None = nothing published yet, else whether the last publish worked
+
+
 def handle(a, data):
-    """Decode a station packet and publish it if it is a measurement."""
+    """Decode a station packet and publish it if it is a measurement.
+
+    The log stays quiet in normal operation: only the first successful publish and changes
+    (MQTT failing / working again) are logged. --debug logs every measurement.
+    """
+    global _mqtt_ok
     r = decode(data)
     if not r:
         return
@@ -295,27 +303,38 @@ def handle(a, data):
     try:
         mqtt_publish(a.mqtt_host, a.mqtt_port, a.mqtt_user, os.environ.get("MQTT_PASSWORD", ""),
                      mqtt_messages(r["mac"], state, "fanju_weather", "homeassistant", a.temperature_unit))
-        log("published:", state["time"], "indoor", state.get("indoor_temp"), "outdoor", state.get("outdoor_temp"))
     except Exception as e:
-        log("MQTT error:", e)
+        if _mqtt_ok is not False:
+            log("MQTT error (further errors are not logged until it works again):", e)
+        _mqtt_ok = False
+        return
+    if a.debug or _mqtt_ok is not True:
+        log("Publishing measurements to MQTT%s:" % (" (recovered)" if _mqtt_ok is False else ""),
+            state["time"], "indoor", state.get("indoor_temp"), "outdoor", state.get("outdoor_temp"))
+    _mqtt_ok = True
 
 
 def receive(a, sock):
     """Yield (data, addr) of packets from the station; log silence and strangers."""
     sock.settimeout(300)
-    total = ignored = 0
+    total = ignored = silent = 0
     while True:
         try:
             data, addr = sock.recvfrom(2048)
         except socket.timeout:
-            log("No packet from the station for 5 minutes (%d so far, %d from other senders). "
-                "Check the router setting and restart the station." % (total, ignored))
+            silent += 1
+            if silent == 1 or silent % 12 == 0:        # after 5 minutes, then once an hour
+                log("No packet from the station for %d minutes (%d received so far, %d from other senders). "
+                    "Check the router setting and restart the station." % (silent * 5, total, ignored))
             continue
         if addr[0] != a.station_ip:
             ignored += 1
             if ignored <= 5:
                 log("Ignored packet from %s:%d" % addr)
             continue
+        if silent:
+            log("The station is sending again.")
+            silent = 0
         total += 1
         yield data, addr
 
@@ -382,6 +401,7 @@ def main():
     p.add_argument("--dns-upstream", default="", help="bridge: normal DNS server for all other names")
     p.add_argument("--indoor-offset", type=float, default=0.0, help="indoor temperature correction in degrees C")
     p.add_argument("--temperature-unit", choices=["celsius", "fahrenheit"], default="celsius")
+    p.add_argument("--debug", action="store_true", help="log every measurement")
     p.add_argument("--timezone", default="Europe/Berlin", help="time zone of the clock time sent to the station")
     p.add_argument("--mqtt-host", required=True)
     p.add_argument("--mqtt-port", type=int, default=1883)

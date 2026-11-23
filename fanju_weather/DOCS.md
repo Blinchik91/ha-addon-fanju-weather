@@ -66,6 +66,7 @@ Change the router setting (route <-> DNS server), change `mode`, restart the add
 | `station_ip` | IP address of the station (use a DHCP reservation) |
 | `timezone` | IANA time zone, e.g. `Europe/Berlin`. In emulator mode the station clock is set from it |
 | `temperature_unit` | `celsius` (default) or `fahrenheit`: unit of the temperature sensors. The station measures in Fahrenheit internally. Changing it later changes the unit of the sensors; Home Assistant then reports a unit change for the long-term statistics of these sensors |
+| `debug` | Log every received measurement (about one line per minute). Off by default |
 | `indoor_offset` | Correction in °C added to the indoor temperature, normally `0` |
 
 ## What the add-on changes on the host

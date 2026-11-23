@@ -69,12 +69,18 @@ else
     bashio::log.info "Emulator mode: the router needs a route ${CLOUD_IP}/255.255.255.255 -> ${HOST_IP}."
 fi
 
+DEBUG_ARGS=()
+if bashio::config.true 'debug'; then
+    DEBUG_ARGS=(--debug)
+fi
+
 python3 /fanju_weather.py \
     --mode "${MODE}" \
     --listen "${LISTEN}" \
     --station-ip "${STATION_IP}" \
     --indoor-offset "$(bashio::config 'indoor_offset')" \
     --temperature-unit "$(bashio::config 'temperature_unit')" \
+    "${DEBUG_ARGS[@]}" \
     --timezone "$(bashio::config 'timezone')" \
     --mqtt-host "$(bashio::services mqtt host)" \
     --mqtt-port "$(bashio::services mqtt port)" \
