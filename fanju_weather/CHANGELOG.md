@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2
+
+* Fix: the add-on could fail to start after a host reboot (exit code 141). The network detection used a pipe that
+  can be killed with SIGPIPE; it now parses the output in bash. The add-on also waits up to a minute for the network
+  to be ready before giving up.
+
 ## 1.0.1
 
 * New option `temperature_unit`: publish temperatures in Celsius (default) or Fahrenheit.

@@ -1,5 +1,5 @@
 name: "Fanju Weather Station (Local Server)"
-version: "1.0.1"
+version: "1.0.2"
 slug: fanju_weather
 description: "Reads Fanju Wi-Fi weather stations locally, cloud-independent or via a bridge to the real cloud (tested with the FJW4) and publishes the values to Home Assistant via MQTT"
 url: "https://github.com/Blinchik91/ha-addon-fanju-weather"

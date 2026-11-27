@@ -22,12 +22,28 @@ fi
 export MQTT_PASSWORD="$(bashio::services mqtt password)"
 export PYTHONUNBUFFERED=1
 
-# Detect this host's address, the default gateway and the network interface.
-ROUTE="$(ip route get 1.1.1.1 2>/dev/null | head -n1)"
-HOST_IP="$(echo "${ROUTE}" | sed -n 's/.* src \([0-9.]*\).*/\1/p')"
-GATEWAY="$(echo "${ROUTE}" | sed -n 's/.* via \([0-9.]*\).*/\1/p')"
-IFACE="$(echo "${ROUTE}" | sed -n 's/.* dev \([^ ]*\).*/\1/p')"
-if [ -z "${HOST_IP}" ] || [ -z "${GATEWAY}" ] || [ -z "${IFACE}" ]; then
+# Detect this host's address, the default gateway and the network interface. Right after a boot the
+# network may not be ready yet, so retry for up to a minute. Note: the output is captured in a variable
+# and parsed with bash only; a pipe such as "ip ... | head -n1" can kill "ip" with SIGPIPE (exit code 141)
+# because this script runs with "set -e -o pipefail".
+HOST_IP=""
+GATEWAY=""
+IFACE=""
+for _ in $(seq 1 30); do
+    ROUTE_OUT="$(ip -o route get 1.1.1.1 2>/dev/null || true)"
+    ROUTE="${ROUTE_OUT%%$'\n'*}"
+    if [[ "${ROUTE}" =~ \ src\ ([0-9.]+) ]]; then HOST_IP="${BASH_REMATCH[1]}"; fi
+    if [[ "${ROUTE}" =~ \ via\ ([0-9.]+) ]]; then GATEWAY="${BASH_REMATCH[1]}"; fi
+    if [[ "${ROUTE}" =~ \ dev\ ([^\ ]+) ]]; then IFACE="${BASH_REMATCH[1]}"; fi
+    if [ -n "${HOST_IP}" ] && [ -n "${GATEWAY}" ] && [ -n "${IFACE}" ]; then
+        break
+    fi
+    HOST_IP=""
+    GATEWAY=""
+    IFACE=""
+    sleep 2
+done
+if [ -z "${HOST_IP}" ]; then
     bashio::log.fatal "Could not detect the network setup (host address / gateway). Is the network up?"
     exit 1
 fi
@@ -50,7 +66,8 @@ if [ "${MODE}" = "bridge" ]; then
 else
     LISTEN="${CLOUD_IP}"
     MODE_ARGS=()
-    if ! ip addr show dev lo | grep -q "inet ${CLOUD_IP}/32"; then
+    LO_INFO="$(ip addr show dev lo)"
+    if [[ "${LO_INFO}" != *"inet ${CLOUD_IP}/32"* ]]; then
         if ip addr add "${CLOUD_IP}/32" dev lo; then
             LO_ALIAS=1
         else
